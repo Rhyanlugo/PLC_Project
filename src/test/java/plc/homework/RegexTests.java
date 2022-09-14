@@ -63,7 +63,13 @@ public class RegexTests {
                 Arguments.of("10 Characters", "automobile", true),
                 Arguments.of("14 Characters", "i<3pancakes10!", true),
                 Arguments.of("6 Characters", "6chars", false),
-                Arguments.of("13 Characters", "i<3pancakes9!", false)
+                Arguments.of("13 Characters", "i<3pancakes9!", false),
+                Arguments.of("20 Characters", "thisisatestfortwenty", true),
+                Arguments.of("19 Characters", "thisisatestfortwen!", false),
+                Arguments.of("11 Characters", "_!^$@$$@#(*", false),
+                Arguments.of("5 Characters", "Rhyan", false),
+                Arguments.of("25 Characters", "thisisatestfortwnetyRHYAN", false),
+                Arguments.of("16 Characters", "thisisaTESTfortw", true)
         );
     }
 
@@ -78,7 +84,14 @@ public class RegexTests {
                 Arguments.of("Single Element", "[1]", true),
                 Arguments.of("Multiple Elements", "[1,2,3]", true),
                 Arguments.of("Missing Brackets", "1,2,3", false),
-                Arguments.of("Missing Commas", "[1 2 3]", false)
+                Arguments.of("Missing Commas", "[1 2 3]", false),
+                Arguments.of("Empty Bracket", "[]", true),
+                Arguments.of("Only 1 Number", "[5]", true),
+                Arguments.of("Only zero", "[0]", false),
+                Arguments.of("Mixed Space", "[4,7, 83]", true),
+                Arguments.of("White Space", "[1, 21, 33]", true),
+                Arguments.of("Missing 1 Comma", "[1, 2 3]", false),
+                Arguments.of("Letters", "[a,b,c]", false)
         );
     }
 
