@@ -12,7 +12,7 @@ public class Regex {
             EMAIL = Pattern.compile("[A-Za-z0-9._\\-]+@[A-Za-z0-9-]*\\.[a-z]{2,3}"),
             EVEN_STRINGS = Pattern.compile("(?=.{10,20}$)(..)*"), //?=.{10,20}: Upcoming string must be in range. (..)*: each . represents a char so there would be a multiple of 2 chars.
             INTEGER_LIST = Pattern.compile("\\[([1-9]+(,\\s*[1-9]+)*)*\\]"), //TODO
-            NUMBER = Pattern.compile(""), //TODO
+            NUMBER = Pattern.compile("^[+-]?([0-9]\\d*)(\\.\\d+)*"), //TODO
             STRING = Pattern.compile(""); //TODO
 
 }

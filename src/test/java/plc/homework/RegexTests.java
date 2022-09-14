@@ -1,5 +1,6 @@
 package plc.homework;
 
+import com.sun.org.apache.xpath.internal.Arg;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -98,11 +99,28 @@ public class RegexTests {
     @ParameterizedTest
     @MethodSource
     public void testNumberRegex(String test, String input, boolean success) {
-        throw new UnsupportedOperationException(); //TODO
+        //throw new UnsupportedOperationException(); //TODO
+        test(input, Regex.NUMBER, success);
     }
 
     public static Stream<Arguments> testNumberRegex() {
-        throw new UnsupportedOperationException(); //TODO
+        //throw new UnsupportedOperationException() //TODO
+        return Stream.of(
+                Arguments.of("One number", "1", true),
+                Arguments.of("Negative One number", "-1", true),
+                Arguments.of("Positive One number", "+1", true),
+                Arguments.of("Decimal", "123.456", true),
+                Arguments.of("Negative Decimal", "-1.0", true),
+                Arguments.of("Trailing Decimal", "1.", false),
+                Arguments.of("Leading Decimal", ".1", false),
+                Arguments.of("Leading Zeroes", "00001", true),
+                Arguments.of("Leading Zeroes Decimal", "00001.56", true),
+                Arguments.of("Trailing Zeroes Decimal", "1000.560000", true),
+                Arguments.of("Leading/Trailing Zeroes Decimal", "000005000.560000", true),
+                Arguments.of("Negative Trailing Zeroes Decimal", "-1000.560000", true),
+                Arguments.of("Positive Trailing Zeroes Decimal", "+1000.560000", true),
+                Arguments.of("Positive/Negative One number", "+-1", false)
+        );
     }
 
     @ParameterizedTest
