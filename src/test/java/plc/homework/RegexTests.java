@@ -126,11 +126,25 @@ public class RegexTests {
     @ParameterizedTest
     @MethodSource
     public void testStringRegex(String test, String input, boolean success) {
-        throw new UnsupportedOperationException(); //TODO
+        //throw new UnsupportedOperationException(); //TODO
+        test(input, Regex.STRING, success);
     }
 
     public static Stream<Arguments> testStringRegex() {
-        throw new UnsupportedOperationException(); //TODO
+        //throw new UnsupportedOperationException(); //TODO
+        return Stream.of(
+                Arguments.of("Empty", "\"\"", true),
+                Arguments.of("Hello World", "\"Hello, World!\"", true),
+                Arguments.of("Escape", "\"1\\t2\"", true),
+                Arguments.of("Escape 2", "\"1\\b5\"", true),
+                Arguments.of("Unterminated", "\"unterminated", false),
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("No Quotes", "", false),
+                Arguments.of("One Quotes", "\"", false),
+                Arguments.of("Three Quotes", "\" \" \"", true),
+                Arguments.of("Four Quotes", "\" \"\" \"", true),
+                Arguments.of("Quotes with white space", "\"  \"", true)
+        );
     }
 
     /**
