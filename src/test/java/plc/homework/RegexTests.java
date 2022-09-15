@@ -18,6 +18,7 @@ import java.util.stream.Stream;
  * run through IntelliJ (File > Settings > Build, Execution, Deployment > Build
  * Tools > Gradle > Run tests using <em>IntelliJ IDEA</em>). This ensures the
  * name and inputs for the tests are displayed correctly in the run window.
+ * Name: Rhyan Lugo Crespo
  */
 public class RegexTests {
 
@@ -70,7 +71,8 @@ public class RegexTests {
                 Arguments.of("11 Characters", "_!^$@$$@#(*", false),
                 Arguments.of("5 Characters", "Rhyan", false),
                 Arguments.of("25 Characters", "thisisatestfortwnetyRHYAN", false),
-                Arguments.of("16 Characters", "thisisaTESTfortw", true)
+                Arguments.of("16 Characters", "thisisaTESTfortw", true),
+                Arguments.of("1 Character", ";", false)
         );
     }
 
@@ -119,7 +121,11 @@ public class RegexTests {
                 Arguments.of("Leading/Trailing Zeroes Decimal", "000005000.560000", true),
                 Arguments.of("Negative Trailing Zeroes Decimal", "-1000.560000", true),
                 Arguments.of("Positive Trailing Zeroes Decimal", "+1000.560000", true),
-                Arguments.of("Positive/Negative One number", "+-1", false)
+                Arguments.of("Positive/Negative One number", "+-1", false),
+                Arguments.of("Negative Large Number", "-1234567891011121314151617181920", true),
+                Arguments.of("Alphanumeric", "abc123", false),
+                Arguments.of("Alphanumeric Positive", "+abc123", false),
+                Arguments.of("Alphanumeric Negative", "-abc123", false)
         );
     }
 
@@ -143,7 +149,11 @@ public class RegexTests {
                 Arguments.of("One Quotes", "\"", false),
                 Arguments.of("Three Quotes", "\" \" \"", true),
                 Arguments.of("Four Quotes", "\" \"\" \"", true),
-                Arguments.of("Quotes with white space", "\"  \"", true)
+                Arguments.of("Quotes with white space", "\"  \"", true),
+                Arguments.of("Alphanumeric", "\"123abc\"", true),
+                Arguments.of("Alphanumeric Negative", "\"-123abc\"", true),
+                Arguments.of("Alphanumeric Negative Escape", "\"-123abc\\n\"", true),
+                Arguments.of("Alphanumeric Invalid Escape", "\"156jg\\h", false)
         );
     }
 

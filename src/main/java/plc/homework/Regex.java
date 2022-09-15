@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 /**
  * Contains {@link Pattern} constants, which are compiled regular expressions.
  * See the assignment page for resources on regexes as needed.
+ * Name: Rhyan Lugo Crespo
  */
 public class Regex {
 
