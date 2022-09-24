@@ -44,7 +44,9 @@ public class LexerTests
 				Arguments.of("Decimal", "123.456", false),
 				Arguments.of("Signed Decimal", "-1.0", false),
 				Arguments.of("Trailing Decimal", "1.", false),
-				Arguments.of("Leading Decimal", ".5", false)
+				Arguments.of("Leading Decimal", ".5", false),
+				Arguments.of("Leading Zero", "01", true),
+				Arguments.of("Leading Zero Decimal", "01.25", false)
 		);
 	}
 
@@ -62,7 +64,9 @@ public class LexerTests
 				Arguments.of("Multiple Digits", "123.456", true),
 				Arguments.of("Negative Decimal", "-1.0", true),
 				Arguments.of("Trailing Decimal", "1.", false),
-				Arguments.of("Leading Decimal", ".5", false)
+				Arguments.of("Leading Decimal", ".5", false),
+				Arguments.of("Leading Zero", "01", false),
+				Arguments.of("Leading Zero Decimal", "01.25", true)
 		);
 	}
 

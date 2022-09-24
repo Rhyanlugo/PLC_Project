@@ -81,7 +81,7 @@ public final class Lexer
 		String numberRules = "[0-9]+(\\.[0-9]+)?";
 		String characterRules = "[']";
 		String stringRules = "[\"]";
-		String operatorRules = "([<>!=] =?|(.))";
+		String operatorRules = "([<>!=]=?|(.))";
 
 		if (peek(identifierRules))
 		{
