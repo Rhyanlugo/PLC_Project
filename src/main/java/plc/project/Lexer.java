@@ -87,7 +87,7 @@ public final class Lexer
 		{
 			return lexIdentifier();
 		}
-		else if (peek("[+-]?") || peek(numberRules))
+		else if (peek("[+-]?", "(\\d)+") || peek(numberRules))
 		{
 			return lexNumber();
 		}
@@ -156,6 +156,8 @@ public final class Lexer
 			return chars.emit(Token.Type.CHARACTER);
 		}
 
+		match("'");
+		while (match(".")) ;
 		throw new ParseException("Invalid Character", chars.index);
 	}
 
@@ -197,12 +199,15 @@ public final class Lexer
 	public void lexEscape()
 	{
 		//throw new UnsupportedOperationException(); //TODO
+		System.out.println("ESCAPE FOUND");
+
 		if (peek("\\\\", "[bnrt'\"\\\\]"))
 		{
 			match("\\\\", "[bnrt'\"\\\\]");
 		}
 		else
 		{
+			match("\\\\");
 			throw new ParseException("Invalid Escape", chars.index);
 		}
 	}
