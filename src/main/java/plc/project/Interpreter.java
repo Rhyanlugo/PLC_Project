@@ -116,13 +116,52 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	@Override
 	public Environment.PlcObject visit(Ast.Stmt.Assignment ast)
 	{
-		throw new UnsupportedOperationException(); //TODO
+		//throw new UnsupportedOperationException(); //TODO
+		if (ast.getReceiver() instanceof Ast.Expr.Access)
+		{
+			if (((Ast.Expr.Access) ast.getReceiver()).getReceiver().isPresent())
+			{
+				visit(((Ast.Expr.Access) ast.getReceiver()).getReceiver().get()).setField(((Ast.Expr.Access) ast.getReceiver()).getName(), visit(ast.getValue()));
+			}
+			else
+			{
+				scope.lookupVariable(((Ast.Expr.Access) ast.getReceiver()).getName()).setValue(visit(ast.getValue()));
+			}
+		}
+
+		return Environment.NIL;
 	}
 
 	@Override
 	public Environment.PlcObject visit(Ast.Stmt.If ast)
 	{
-		throw new UnsupportedOperationException(); //TODO
+		//throw new UnsupportedOperationException(); //TODO
+		if (requireType(boolean.class, visit(ast.getCondition())))
+		{
+			try
+			{
+				scope = new Scope(scope);
+				ast.getThenStatements().forEach(this::visit);
+			}
+			finally
+			{
+				scope = scope.getParent();
+			}
+		}
+		else
+		{
+			try
+			{
+				scope = new Scope(scope);
+				ast.getElseStatements().forEach(this::visit);
+			}
+			finally
+			{
+				scope = scope.getParent();
+			}
+		}
+
+		return Environment.NIL;
 	}
 
 	@Override
