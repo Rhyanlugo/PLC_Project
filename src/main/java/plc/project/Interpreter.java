@@ -73,10 +73,12 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 				{
 					visit(statement);
 				}
-			} catch (Return e)
+			}
+			catch (Return e)
 			{
 				return e.value;
-			} finally
+			}
+			finally
 			{
 				scope = scope.getParent();
 			}
@@ -98,7 +100,17 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	@Override
 	public Environment.PlcObject visit(Ast.Stmt.Declaration ast)
 	{
-		throw new UnsupportedOperationException(); //TODO (in lecture)
+		//throw new UnsupportedOperationException(); //TODO (in lecture)
+		if (ast.getValue().isPresent())
+		{
+			scope.defineVariable(ast.getName(), visit(ast.getValue().get()));
+		}
+		else
+		{
+			scope.defineVariable(ast.getName(), Environment.NIL);
+		}
+
+		return Environment.NIL;
 	}
 
 	@Override
@@ -133,7 +145,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 				{
 					visit(stmt);
 				}
-			} finally
+			}
+			finally
 			{
 				scope = scope.getParent();
 			}
@@ -305,7 +318,23 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	@Override
 	public Environment.PlcObject visit(Ast.Expr.Function ast)
 	{
-		throw new UnsupportedOperationException(); //TODO
+		//throw new UnsupportedOperationException(); //TODO
+		List<Environment.PlcObject> fnArguments = new ArrayList<>();
+
+		for (Ast.Expr arg : ast.getArguments())
+		{
+			fnArguments.add(visit(arg));
+		}
+
+		if (ast.getReceiver().isPresent())
+		{
+			return visit(ast.getReceiver().get()).callMethod(ast.getName(), fnArguments);
+		}
+		else
+		{
+			return scope.lookupFunction(ast.getName(), ast.getArguments().size()).invoke(fnArguments);
+		}
+
 	}
 
 	/**
