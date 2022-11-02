@@ -1,9 +1,12 @@
 package plc.project;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,10 +72,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 					scope.defineVariable(ast.getParameters().get(i), arguments.get(i));
 				}
 
-				for (Ast.Stmt statement : ast.getStatements())
-				{
-					visit(statement);
-				}
+				ast.getStatements().forEach(this::visit);
 			}
 			catch (Return e)
 			{
@@ -136,7 +136,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	public Environment.PlcObject visit(Ast.Stmt.If ast)
 	{
 		//throw new UnsupportedOperationException(); //TODO
-		if (requireType(boolean.class, visit(ast.getCondition())))
+		if (requireType(Boolean.class, visit(ast.getCondition())))
 		{
 			try
 			{
@@ -167,7 +167,25 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	@Override
 	public Environment.PlcObject visit(Ast.Stmt.For ast)
 	{
-		throw new UnsupportedOperationException(); //TODO
+		//throw new UnsupportedOperationException(); //TODO
+		Iterable<Environment.PlcObject> iter = requireType(Iterable.class, visit(ast.getValue()));
+
+		for (Environment.PlcObject variable : iter)
+		{
+			try
+			{
+				scope = new Scope(scope);
+				scope.defineVariable(ast.getName(), variable);
+
+				ast.getStatements().forEach(this::visit);
+			}
+			finally
+			{
+				scope = scope.getParent();
+			}
+		}
+
+		return Environment.NIL;
 	}
 
 	@Override
@@ -180,10 +198,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 			{
 				scope = new Scope(scope);
 
-				for (Ast.Stmt stmt : ast.getStatements())
-				{
-					visit(stmt);
-				}
+				ast.getStatements().forEach(this::visit);
 			}
 			finally
 			{
