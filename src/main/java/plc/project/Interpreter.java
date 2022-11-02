@@ -1,16 +1,11 @@
 package plc.project;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 {
@@ -233,7 +228,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	@Override
 	public Environment.PlcObject visit(Ast.Expr.Group ast)
 	{
-		throw new UnsupportedOperationException(); //TODO
+		//throw new UnsupportedOperationException(); //TODO
+		return visit(ast.getExpression());
 	}
 
 	@Override
@@ -241,7 +237,20 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	{
 		//throw new UnsupportedOperationException(); //TODO
 		Environment.PlcObject leftObject = visit(ast.getLeft());
-		Environment.PlcObject rightObject = visit(ast.getRight());
+		Environment.PlcObject rightObject = null;
+
+		/*
+		 * Changed Expression.Binary to only initialize the rightObject variable to the right expression value only when it
+		 * is not an "OR" operator, otherwise short-circuiting might fail, as the right side will also be analyzed at the
+		 * beginning before it is necessary. Works so far, but it is possible that some other instances of rightObject will
+		 * need to be replaced with the visit function call instead, rather than being initialized at the beginning,
+		 * though it is unlikely.
+		 */
+
+		if (!ast.getOperator().equals("OR"))
+		{
+			rightObject = visit(ast.getRight());
+		}
 
 		switch (ast.getOperator())
 		{
@@ -255,7 +264,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 					return Environment.create(false);
 				}
 			case "OR":
-				if (requireType(boolean.class, leftObject) || requireType(boolean.class, rightObject))
+				if (requireType(Boolean.class, leftObject) || requireType(Boolean.class, visit(ast.getRight())))
 				{
 					return Environment.create(true);
 				}
