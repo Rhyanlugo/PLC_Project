@@ -240,9 +240,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 		Environment.PlcObject rightObject = null;
 
 		/*
-		 * Changed Expression.Binary to only initialize the rightObject variable to the right expression value only when it
-		 * is not an "AND" or "OR" operator, otherwise short-circuiting might fail, as the right side will also be analyzed at the
-		 * beginning before it is necessary.
+		 * rightObject should only be initialized when it's not the 'AND' or 'OR' operator, in order to take into account
+		 * for short-circuiting. Otherwise, the tests might fail, as the right side should only be analyzed so long
+		 * as the left side is a viable option.
 		 */
 
 		if (!ast.getOperator().equals("AND") && !ast.getOperator().equals("OR"))
