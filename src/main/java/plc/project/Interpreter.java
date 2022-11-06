@@ -56,11 +56,11 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 	public Environment.PlcObject visit(Ast.Method ast)
 	{
 		//throw new UnsupportedOperationException(); //TODO
-
+		Scope parent = new Scope(scope);
 		scope.defineFunction(ast.getName(), ast.getParameters().size(), arguments -> {
 			try
 			{
-				scope = new Scope(scope);
+				scope = new Scope(parent);
 
 				for (int i = 0; i < arguments.size(); i++)
 				{
@@ -75,7 +75,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject>
 			}
 			finally
 			{
-				scope = scope.getParent();
+				scope = parent.getParent();
 			}
 			return Environment.NIL;
 		});
