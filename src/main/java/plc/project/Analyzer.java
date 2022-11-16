@@ -31,7 +31,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Source ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
 		ast.getFields().forEach(this::visit);
 		ast.getMethods().forEach(this::visit);
 		requireAssignable(Environment.Type.INTEGER, scope.lookupFunction("main", 0).getReturnType());
@@ -41,7 +40,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Field ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
 		if (ast.getValue().isPresent())
 		{
 			visit(ast.getValue().get());
@@ -56,7 +54,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Method ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
 		List<Environment.Type> parameterTypes = new ArrayList<>();
 		Environment.Type returnType = Environment.Type.NIL;
 
@@ -95,8 +92,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.Expression ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
-
 		if (!(ast.getExpression() instanceof Ast.Expr.Function))
 		{
 			throw new RuntimeException("Expression must be of type Ast.Expr.Function.");
@@ -108,7 +103,33 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.Declaration ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		if (!ast.getValue().isPresent() && !ast.getTypeName().isPresent())
+		{
+			throw new RuntimeException("Value and Type not found");
+		}
+
+		Environment.Type variableType = null;
+
+		if (ast.getTypeName().isPresent())
+		{
+			variableType = Environment.getType(ast.getTypeName().get());
+		}
+
+		if (ast.getValue().isPresent())
+		{
+			visit(ast.getValue().get());
+
+			if (variableType == null)
+			{
+				variableType = ast.getValue().get().getType();
+			}
+
+			requireAssignable(variableType, ast.getValue().get().getType());
+		}
+
+		ast.setVariable(scope.defineVariable(ast.getName(), ast.getName(), variableType, Environment.NIL));
+
+		return null;
 	}
 
 	@Override
@@ -144,8 +165,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Expr.Literal ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
-
 		if (ast.getLiteral() == null)
 		{
 			ast.setType(Environment.Type.NIL);
@@ -210,8 +229,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Expr.Function ast)
 	{
-		//throw new UnsupportedOperationException();  // TODO
-
 		if (ast.getReceiver().isPresent())
 		{
 			visit(ast.getReceiver().get());
@@ -244,8 +261,6 @@ public final class Analyzer implements Ast.Visitor<Void>
 
 	public static void requireAssignable(Environment.Type target, Environment.Type type)
 	{
-		//throw new UnsupportedOperationException();  // TODO
-
 		if (target.getName().equals(type.getName()))
 		{
 			return;
