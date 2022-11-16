@@ -30,13 +30,26 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Source ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		//throw new UnsupportedOperationException();  // TODO
+		ast.getFields().forEach(this::visit);
+		ast.getMethods().forEach(this::visit);
+		requireAssignable(Environment.Type.INTEGER, scope.lookupFunction("main", 0).getReturnType());
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Field ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		//throw new UnsupportedOperationException();  // TODO
+		if (ast.getValue().isPresent())
+		{
+			visit(ast.getValue().get());
+			requireAssignable(Environment.getType(ast.getTypeName()), ast.getValue().get().getType());
+		}
+
+		ast.setVariable(scope.defineVariable(ast.getName(), ast.getName(), Environment.getType(ast.getTypeName()), Environment.NIL));
+
+		return null;
 	}
 
 	@Override
