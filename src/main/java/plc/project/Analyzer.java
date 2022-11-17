@@ -78,11 +78,13 @@ public final class Analyzer implements Ast.Visitor<Void>
 				scope.defineVariable(ast.getParameters().get(i), ast.getParameters().get(i), parameterTypes.get(i), Environment.NIL);
 			}
 
+			method = ast;
 			ast.getStatements().forEach(this::visit);
 		}
 		finally
 		{
 			scope = scope.getParent();
+			method = null;
 		}
 
 		return null;
@@ -94,7 +96,7 @@ public final class Analyzer implements Ast.Visitor<Void>
 	{
 		if (!(ast.getExpression() instanceof Ast.Expr.Function))
 		{
-			throw new RuntimeException("Expression must be of type Ast.Expr.Function.");
+			throw new RuntimeException("Incorrect type. Expected Ast.Expr.Function.");
 		}
 		visit(ast.getExpression());
 		return null;
@@ -135,31 +137,104 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.Assignment ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		if (!(ast.getReceiver() instanceof Ast.Expr.Access))
+		{
+			throw new RuntimeException("Incorrect type. Expected Ast.Expr.Access");
+		}
+
+		visit(ast.getReceiver());
+		visit(ast.getValue());
+
+		requireAssignable(ast.getReceiver().getType(), ast.getValue().getType());
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Stmt.If ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		visit(ast.getCondition());
+		requireAssignable(Environment.Type.BOOLEAN, ast.getCondition().getType());
+
+		if (ast.getThenStatements().isEmpty())
+		{
+			throw new RuntimeException("Then statement is empty");
+		}
+
+		try
+		{
+			scope = new Scope(scope);
+			ast.getThenStatements().forEach(this::visit);
+		}
+		finally
+		{
+			scope = scope.getParent();
+		}
+
+		try
+		{
+			scope = new Scope(scope);
+			ast.getElseStatements().forEach(this::visit);
+		}
+		finally
+		{
+			scope = scope.getParent();
+		}
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Stmt.For ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		visit(ast.getValue());
+		requireAssignable(Environment.Type.INTEGER_ITERABLE, ast.getValue().getType());
+
+		if (ast.getStatements().isEmpty())
+		{
+			throw new RuntimeException("Statement list is empty");
+		}
+
+		try
+		{
+			scope = new Scope(scope);
+
+			scope.defineVariable(ast.getName(), ast.getName(), Environment.Type.INTEGER, Environment.NIL);
+			ast.getStatements().forEach(this::visit);
+		}
+		finally
+		{
+			scope = scope.getParent();
+		}
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Stmt.While ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		visit(ast.getCondition());
+		requireAssignable(Environment.Type.BOOLEAN, ast.getCondition().getType());
+
+		try
+		{
+			scope = new Scope(scope);
+			ast.getStatements().forEach(this::visit);
+		}
+		finally
+		{
+			scope = scope.getParent();
+		}
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Stmt.Return ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		visit(ast.getValue());
+		requireAssignable(method.getFunction().getReturnType(), ast.getValue().getType());
+		return null;
 	}
 
 	@Override
@@ -211,19 +286,78 @@ public final class Analyzer implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Expr.Group ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		if (ast.getExpression() instanceof Ast.Expr.Binary)
+		{
+			visit(ast.getExpression());
+			ast.setType(ast.getExpression().getType());
+		}
+		else
+		{
+			throw new RuntimeException("Incorrect expression. Expected binary expression");
+		}
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Expr.Binary ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		visit(ast.getLeft());
+		visit(ast.getRight());
+
+		if (ast.getOperator().equals("AND") || ast.getOperator().equals("OR"))
+		{
+			requireAssignable(Environment.Type.BOOLEAN, ast.getLeft().getType());
+			requireAssignable(Environment.Type.BOOLEAN, ast.getRight().getType());
+			ast.setType(Environment.Type.BOOLEAN);
+		}
+		else if (ast.getOperator().equals("<") || ast.getOperator().equals("<=") || ast.getOperator().equals(">") || ast.getOperator().equals(">=") || ast.getOperator().equals("==") || ast.getOperator().equals("!="))
+		{
+			requireAssignable(Environment.Type.COMPARABLE, ast.getLeft().getType());
+			requireAssignable(Environment.Type.COMPARABLE, ast.getRight().getType());
+			requireAssignable(ast.getLeft().getType(), ast.getRight().getType());
+			ast.setType(Environment.Type.BOOLEAN);
+		}
+		else if (ast.getOperator().equals("+") || ast.getOperator().equals("-") || ast.getOperator().equals("*") || ast.getOperator().equals("/"))
+		{
+			if (ast.getOperator().equals("+") && (ast.getLeft().getType() == Environment.Type.STRING || ast.getRight().getType() == Environment.Type.STRING))
+			{
+				ast.setType(Environment.Type.STRING);
+			}
+			else if (ast.getLeft().getType() == Environment.Type.INTEGER || ast.getLeft().getType() == Environment.Type.DECIMAL)
+			{
+				if (ast.getRight().getType() == ast.getLeft().getType())
+				{
+					ast.setType(ast.getLeft().getType());
+				}
+				else
+				{
+					throw new RuntimeException("Operand types do not match.");
+				}
+			}
+			else
+			{
+				throw new RuntimeException("Operand types do not match.");
+			}
+		}
+
+		return null;
 	}
 
 	@Override
 	public Void visit(Ast.Expr.Access ast)
 	{
-		throw new UnsupportedOperationException();  // TODO
+		if (ast.getReceiver().isPresent())
+		{
+			visit(ast.getReceiver().get());
+			ast.setVariable(ast.getReceiver().get().getType().getField(ast.getName()));
+		}
+		else
+		{
+			ast.setVariable(scope.lookupVariable(ast.getName()));
+		}
+
+		return null;
 	}
 
 	@Override
