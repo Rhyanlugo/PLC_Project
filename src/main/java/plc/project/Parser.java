@@ -1,7 +1,7 @@
 package plc.project;
 
-import jdk.nashorn.internal.runtime.ParserException;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -66,51 +66,45 @@ public final class Parser
 	 */
 	public Ast.Field parseField() throws ParseException
 	{
-		String identifier;
+		if (!match(Token.Type.IDENTIFIER))
+		{
+			throw generateParseException("'Identifier' expected");
+		}
+
+		String identifier = tokens.get(-1).getLiteral();
 		String typeName;
 
-		match("LET");
-		identifier = tokens.get(0).getLiteral();
-		match(identifier);
-
-		if (peek(":", Token.Type.IDENTIFIER))
+		if (match(":",Token.Type.IDENTIFIER))
 		{
-			match(":");
-			typeName = tokens.get(0).getLiteral();
-			match(tokens.get(0).getLiteral());
+			typeName = tokens.get(-1).getLiteral();
 		}
 		else
 		{
-			throw new ParseException("Type name not found", tokens.index);
+			throw generateParseException("Incorrect type");
 		}
 
-		if (peek("="))
+		if (match("="))
 		{
-			match("=");
-			Ast.Expr expr = parseExpression();
+			Ast.Expr exprValue = parseExpression();
 
-			if (peek(";"))
+			if (match(";"))
 			{
-				match(";");
-				return new Ast.Field(identifier, typeName, Optional.of(expr));
+				return new Ast.Field(identifier, typeName, Optional.of(exprValue));
 			}
 			else
 			{
-				throw new ParseException("';' expected", tokens.index);
+				throw generateParseException("';' expected");
 			}
+		}
+		else if (match(";"))
+		{
+			return new Ast.Field(identifier, typeName, Optional.empty());
 		}
 		else
 		{
-			if (peek(";"))
-			{
-				match(";");
-				return new Ast.Field(identifier, typeName, Optional.empty());
-			}
-			else
-			{
-				throw new ParseException("';' expected", tokens.index);
-			}
+			throw generateParseException("';' expected");
 		}
+
 	}
 
 	/**
@@ -119,87 +113,86 @@ public final class Parser
 	 */
 	public Ast.Method parseMethod() throws ParseException
 	{
-		String identifier = "";
-		String returnType = "";
+		if (!match(Token.Type.IDENTIFIER))
+		{
+			throw generateParseException("'Identifier' expected");
+		}
+
+		String identifier = tokens.get(-1).getLiteral();
+		Optional<String> returnType = Optional.empty();
 
 		List<Ast.Stmt> statements = new ArrayList<>();
 		List<String> parameters = new ArrayList<>();
 		List<String> parameterTypes = new ArrayList<>();
 
-		match("DEF");
-		identifier = tokens.get(0).getLiteral();
-		match(identifier); // TODO Combine
-		match("(");
-
-		if (peek(")"))
+		if (!match("("))
 		{
-			match(")");
+			throw generateParseException("'(' expected");
 		}
-		else
+		if (!peek(Token.Type.IDENTIFIER) && !peek(")"))
 		{
-			while (!peek(")"))
+			throw generateParseException("')' expected");
+		}
+
+		if (match(Token.Type.IDENTIFIER))
+		{
+			parameters.add(tokens.get(-1).getLiteral());
+
+			if (match(":",Token.Type.IDENTIFIER))
 			{
-				if(peek(",",")"))
+				parameterTypes.add(tokens.get(-1).getLiteral());
+				match(Token.Type.IDENTIFIER);
+			}
+			else
+			{
+				throw generateParseException("Incorrect type");
+			}
+
+			while (match(",") && !peek(")"))
+			{
+				if (match(Token.Type.IDENTIFIER))
 				{
-					throw new ParseException("Expected token after comma", tokens.index);
-				}
-				else if (peek(","))
-				{
-					match(",");
+					parameters.add(tokens.get(-1).getLiteral());
+					parameterTypes.add(tokens.get(-1).getLiteral());
+					match(Token.Type.IDENTIFIER);
 				}
 				else
 				{
-					if (peek(Token.Type.IDENTIFIER,":",Token.Type.IDENTIFIER))
-					{
-						parameters.add(tokens.get(0).getLiteral());
-
-						match(tokens.get(0).getLiteral());
-						match(":"); //TODO Combine
-
-						parameterTypes.add(tokens.get(0).getLiteral());
-
-						match(tokens.get(0).getLiteral());
-					}
-					else
-					{
-						throw new ParseException("Expected type name", tokens.index);
-					}
+					throw generateParseException("'Identifier' expected");
 				}
 			}
-			match(")");
 		}
 
-		if (peek(":",Token.Type.IDENTIFIER))
+		if (!match(")"))
 		{
-			match(":");
-			returnType = tokens.get(0).getLiteral();
-			match(returnType);
+			throw generateParseException("')' expected");
 		}
 
-		if (peek("DO"))
+		if (match(":"))
 		{
-			match("DO");
+			returnType = Optional.of(tokens.get(0).getLiteral());
+			match(Token.Type.IDENTIFIER);
+		}
+
+		if (match("DO"))
+		{
+			while (tokens.has(0))
+			{
+				if (match("END"))
+				{
+					return new Ast.Method(identifier, parameters, parameterTypes, returnType, statements);
+				}
+
+				statements.add(parseStatement());
+			}
 		}
 		else
 		{
-			throw new ParseException("'DO' expected", tokens.index);
+			throw generateParseException("'DO' expected");
 		}
 
-		while (!(peek("END")) && tokens.index < tokens.tokens.size())
-		{
-			statements.add(parseStatement());
-		}
+		throw generateParseException("'END' expected");
 
-		if (peek("END"))
-		{
-			match("END");
-		}
-		else
-		{
-			throw new ParseException("'END' expected", tokens.index);
-		}
-
-		return new Ast.Method(identifier, parameters, parameterTypes, Optional.of(returnType), statements);
 	}
 
 	/**
@@ -227,29 +220,37 @@ public final class Parser
 		}
 		else if (match("RETURN"))
 		{
-			parseReturnStatement();
+			return parseReturnStatement();
 		}
-
-		Ast.Stmt.Expr lhs = parseExpression();
-
-		if (!match("="))
+		else if (tokens.has(0))
 		{
-			if (!match(";"))
+			Ast.Expr lhs = parseExpression();
+
+			if (match("="))
 			{
-				throw new ParseException("';' expected", tokens.get(-1).getIndex());
+				Ast.Expr rhs = parseExpression();
+
+				if (match(";"))
+				{
+					return new Ast.Stmt.Assignment(lhs, rhs);
+				}
+				else
+				{
+					throw generateParseException("';' expected");
+				}
 			}
 
-			return new Ast.Stmt.Expression(lhs);
+			if (match(";"))
+			{
+				return new Ast.Stmt.Expression(lhs);
+			}
+			else
+			{
+				throw generateParseException("';' expected");
+			}
 		}
 
-		Ast.Stmt.Expr rhs = parseExpression();
-
-		if (!match(";"))
-		{
-			throw new ParseException("';' expected", tokens.get(-1).getIndex());
-		}
-
-		return new Ast.Stmt.Assignment(lhs, rhs);
+		throw generateParseException("Incorrect statement");
 
 	}
 
@@ -260,7 +261,47 @@ public final class Parser
 	 */
 	public Ast.Stmt.Declaration parseDeclarationStatement() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		if (!match(Token.Type.IDENTIFIER))
+		{
+			throw generateParseException("'Identifier' expected");
+		}
+
+		String identifier = tokens.get(-1).getLiteral();
+		Optional<String> typeName = Optional.empty();
+
+		if (match(":"))
+		{
+			if (!peek(Token.Type.IDENTIFIER))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+
+			typeName = Optional.of(tokens.get(0).getLiteral());
+			match(Token.Type.IDENTIFIER);
+		}
+
+		if (match("="))
+		{
+			Ast.Expr lhs = parseExpression();
+
+			if (match(";"))
+			{
+				return new Ast.Stmt.Declaration(identifier, typeName, Optional.of(lhs));
+			}
+			else
+			{
+				throw generateParseException("';' expected");
+			}
+		}
+
+		if (match(";"))
+		{
+			return new Ast.Stmt.Declaration(identifier, typeName, Optional.empty());
+		}
+		else
+		{
+			throw generateParseException("';' expected");
+		}
 	}
 
 	/**
@@ -270,7 +311,39 @@ public final class Parser
 	 */
 	public Ast.Stmt.If parseIfStatement() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr condition = parseExpression();
+
+		if (match("DO"))
+		{
+			List<Ast.Stmt> thenStatements = new ArrayList<>();
+			List<Ast.Stmt> elseStatements = new ArrayList<>();
+
+			while (tokens.has(0) && !peek("ELSE") && !peek("END"))
+			{
+				thenStatements.add(parseStatement());
+			}
+
+			if (match("ELSE"))
+			{
+				while (tokens.has(0) && !peek("END"))
+				{
+					elseStatements.add(parseStatement());
+				}
+			}
+
+			if (match("END"))
+			{
+				return new Ast.Stmt.If(condition, thenStatements, elseStatements);
+			}
+			else
+			{
+				throw generateParseException("'END' expected");
+			}
+		}
+		else
+		{
+			throw generateParseException("'DO' expected");
+		}
 	}
 
 	/**
@@ -280,7 +353,41 @@ public final class Parser
 	 */
 	public Ast.Stmt.For parseForStatement() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		if (!match(Token.Type.IDENTIFIER))
+		{
+			throw generateParseException("'Identifier' expected");
+		}
+
+		String identifier = tokens.get(-1).getLiteral();
+
+		if (match("IN"))
+		{
+			Ast.Expr exprValue = parseExpression();
+
+			if (match("DO"))
+			{
+				List<Ast.Stmt> statements = new ArrayList<>();
+
+				while (tokens.has(0))
+				{
+					if (match("END"))
+					{
+						return new Ast.Stmt.For(identifier, exprValue, statements);
+					}
+					statements.add(parseStatement());
+				}
+
+				throw generateParseException("'END' expected");
+			}
+			else
+			{
+				throw generateParseException("'DO' expected");
+			}
+		}
+		else
+		{
+			throw generateParseException("'IN' expected");
+		}
 	}
 
 	/**
@@ -290,7 +397,27 @@ public final class Parser
 	 */
 	public Ast.Stmt.While parseWhileStatement() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr condition = parseExpression();
+
+		if (match("DO"))
+		{
+			List<Ast.Stmt> statements = new ArrayList<>();
+
+			while (tokens.has(0))
+			{
+				if (match("END"))
+				{
+					return new Ast.Stmt.While(condition, statements);
+				}
+				statements.add(parseStatement());
+			}
+
+			throw generateParseException("'END' expected");
+		}
+		else
+		{
+			throw generateParseException("'DO' expected");
+		}
 	}
 
 	/**
@@ -300,7 +427,17 @@ public final class Parser
 	 */
 	public Ast.Stmt.Return parseReturnStatement() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr exprValue = parseExpression();
+
+		if (match(";"))
+		{
+			return new Ast.Stmt.Return(exprValue);
+		}
+		else
+		{
+			throw generateParseException("';' expected");
+		}
+
 	}
 
 	/**
@@ -308,7 +445,7 @@ public final class Parser
 	 */
 	public Ast.Expr parseExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		return parseLogicalExpression();
 	}
 
 	/**
@@ -316,7 +453,22 @@ public final class Parser
 	 */
 	public Ast.Expr parseLogicalExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr left = parseEqualityExpression();
+
+		while (match("AND") || match("OR"))
+		{
+			if (!tokens.has(0))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+
+			String operator = tokens.get(-1).getLiteral();
+			Ast.Expr right = parseEqualityExpression();
+
+			left = new Ast.Expr.Binary(operator, left, right);
+		}
+
+		return left;
 	}
 
 	/**
@@ -324,7 +476,21 @@ public final class Parser
 	 */
 	public Ast.Expr parseEqualityExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr left = parseAdditiveExpression();
+
+		while (match(">") || match(">=") || match("<") || match("<=") || match("==") || match("!="))
+		{
+			if (!tokens.has(0))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+
+			String operator = tokens.get(-1).getLiteral();
+			Ast.Expr right = parseAdditiveExpression();
+			left = new Ast.Expr.Binary(operator, left, right);
+		}
+
+		return left;
 	}
 
 	/**
@@ -332,7 +498,21 @@ public final class Parser
 	 */
 	public Ast.Expr parseAdditiveExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr left = parseMultiplicativeExpression();
+
+		while (match("+") || match("-"))
+		{
+			if (!tokens.has(0))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+
+			String operator = tokens.get(-1).getLiteral();
+			Ast.Expr right = parseMultiplicativeExpression();
+			left = new Ast.Expr.Binary(operator, left, right);
+		}
+
+		return left;
 	}
 
 	/**
@@ -340,7 +520,21 @@ public final class Parser
 	 */
 	public Ast.Expr parseMultiplicativeExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr left = parseSecondaryExpression();
+
+		while (match("*") || match("/"))
+		{
+			if (!tokens.has(0))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+
+			String operator = tokens.get(-1).getLiteral();
+			Ast.Expr right = parseSecondaryExpression();
+			left = new Ast.Expr.Binary(operator, left, right);
+		}
+
+		return left;
 	}
 
 	/**
@@ -348,7 +542,60 @@ public final class Parser
 	 */
 	public Ast.Expr parseSecondaryExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		Ast.Expr receiver = parsePrimaryExpression();
+
+		while (peek(".",Token.Type.IDENTIFIER))
+		{
+			if (peek(".", Token.Type.IDENTIFIER,"("))
+			{
+				while (peek(".", Token.Type.IDENTIFIER,"("))
+				{
+					String name = tokens.get(1).getLiteral();
+
+					List<Ast.Expr> arguments = new ArrayList<>();
+
+					match(".", Token.Type.IDENTIFIER, "(");
+
+					while (tokens.has(0))
+					{
+						if (match(")"))
+						{
+							receiver = new Ast.Expr.Function(Optional.of(receiver), name, arguments);
+							break;
+						}
+
+						if (!match(","))
+						{
+							arguments.add(parseExpression());
+						}
+						else
+						{
+							throw generateParseException("'Expression' expected");
+						}
+					}
+
+					if (!tokens.has(0) && (!tokens.get(-1).getLiteral().equals(")")))
+					{
+						throw generateParseException("')' expected");
+					}
+				}
+			}
+			else
+			{
+				receiver = new Ast.Expr.Access(Optional.of(receiver), tokens.get(1).getLiteral());
+				match(".",Token.Type.IDENTIFIER);
+			}
+		}
+
+		if (peek("."))
+		{
+			if (!tokens.has(0))
+			{
+				throw generateParseException("'Identifier' expected");
+			}
+		}
+
+		return receiver;
 	}
 
 	/**
@@ -359,7 +606,130 @@ public final class Parser
 	 */
 	public Ast.Expr parsePrimaryExpression() throws ParseException
 	{
-		throw new UnsupportedOperationException(); //TODO
+		if (match("NIL"))
+		{
+			return new Ast.Expr.Literal(null);
+		}
+		else if (match("TRUE"))
+		{
+			return new Ast.Expr.Literal(true);
+		}
+		else if (match("FALSE"))
+		{
+			return new Ast.Expr.Literal(false);
+		}
+		else if (match(Token.Type.INTEGER))
+		{
+			return new Ast.Expr.Literal(new BigInteger(tokens.get(-1).getLiteral()));
+		}
+		else if (match(Token.Type.DECIMAL))
+		{
+			return new Ast.Expr.Literal(new BigDecimal(tokens.get(-1).getLiteral()));
+		}
+		else if (match(Token.Type.CHARACTER))
+		{
+			char token = tokens.get(-1).getLiteral().charAt(1);
+
+			if (token == '\\')
+			{
+				char temp = tokens.get(-1).getLiteral().charAt(2);
+
+				switch (temp)
+				{
+					case 'n':
+						token = '\n';
+						break;
+					case 'b':
+						token = '\b';
+						break;
+					case 'r':
+						token = '\r';
+						break;
+					case 't':
+						token = '\t';
+						break;
+					case '\'':
+						token = '\'';
+						break;
+					case '\"':
+						token = '\"';
+						break;
+					case '\\':
+						token = '\\';
+						break;
+				}
+			}
+
+			return new Ast.Expr.Literal(token);
+		}
+		else if (match(Token.Type.STRING))
+		{
+			String token = tokens.get(-1).getLiteral();
+			token = token.substring(1, token.length() - 1);
+
+			if (token.contains("\\"))
+			{
+				token = token.replace("\\n", "\n")
+						.replace("\\t", "\t")
+						.replace("\\b", "\b")
+						.replace("\\r", "\r")
+						.replace("\\'", "'")
+						.replace("\\\\", "\\")
+						.replace("\\\"", "\"");
+			}
+
+			return new Ast.Expr.Literal(token);
+		}
+		else if (match("("))
+		{
+			Ast.Expr expression = parseExpression();
+
+			if (match(")"))
+			{
+				return new Ast.Stmt.Expr.Group(expression);
+			}
+			else
+			{
+				throw generateParseException("')' expected");
+			}
+		}
+		else if (match(Token.Type.IDENTIFIER))
+		{
+			String name = tokens.get(-1).getLiteral();
+
+			if (match("("))
+			{
+				List<Ast.Expr> arguments = new ArrayList<>();
+
+				if (!peek(")") && !peek(","))
+				{
+					arguments.add(parseExpression());
+
+					while (match(",") && !peek(")"))
+					{
+						arguments.add(parseExpression());
+					}
+				}
+
+				if (match(")"))
+				{
+					return new Ast.Expr.Function(Optional.empty(), name, arguments);
+				}
+				else
+				{
+					throw generateParseException("')' expected");
+				}
+			}
+			else
+			{
+				return new Ast.Expr.Access(Optional.empty(), name);
+			}
+
+		}
+		else
+		{
+			throw generateParseException("Invalid expression");
+		}
 	}
 
 	/**
@@ -457,6 +827,18 @@ public final class Parser
 			index++;
 		}
 
+	}
+
+	private ParseException generateParseException(String message)
+	{
+		if (!tokens.has(0))
+		{
+			return new ParseException(message, tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
+		}
+		else
+		{
+			return new ParseException(message, tokens.get(0).getIndex());
+		}
 	}
 
 }
