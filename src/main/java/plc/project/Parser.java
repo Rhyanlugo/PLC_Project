@@ -74,7 +74,7 @@ public final class Parser
 		String identifier = tokens.get(-1).getLiteral();
 		String typeName;
 
-		if (match(":",Token.Type.IDENTIFIER))
+		if (match(":", Token.Type.IDENTIFIER))
 		{
 			typeName = tokens.get(-1).getLiteral();
 		}
@@ -138,7 +138,7 @@ public final class Parser
 		{
 			parameters.add(tokens.get(-1).getLiteral());
 
-			if (match(":",Token.Type.IDENTIFIER))
+			if (match(":", Token.Type.IDENTIFIER))
 			{
 				parameterTypes.add(tokens.get(-1).getLiteral());
 				match(Token.Type.IDENTIFIER);
@@ -544,11 +544,11 @@ public final class Parser
 	{
 		Ast.Expr receiver = parsePrimaryExpression();
 
-		while (peek(".",Token.Type.IDENTIFIER))
+		while (peek(".", Token.Type.IDENTIFIER))
 		{
-			if (peek(".", Token.Type.IDENTIFIER,"("))
+			if (peek(".", Token.Type.IDENTIFIER, "("))
 			{
-				while (peek(".", Token.Type.IDENTIFIER,"("))
+				while (peek(".", Token.Type.IDENTIFIER, "("))
 				{
 					String name = tokens.get(1).getLiteral();
 
@@ -583,7 +583,7 @@ public final class Parser
 			else
 			{
 				receiver = new Ast.Expr.Access(Optional.of(receiver), tokens.get(1).getLiteral());
-				match(".",Token.Type.IDENTIFIER);
+				match(".", Token.Type.IDENTIFIER);
 			}
 		}
 
