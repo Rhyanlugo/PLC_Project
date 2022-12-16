@@ -114,22 +114,29 @@ public final class Generator implements Ast.Visitor<Void>
 		if (!ast.getStatements().isEmpty())
 		{
 			indent++;
+			newline(indent);
+
+			boolean firstStat = true;
 
 			for (Ast.Stmt statement : ast.getStatements())
 			{
-				newline(indent);
-				print(statement);
+				if (firstStat)
+				{
+					print(statement);
+					firstStat = false;
+				}
+				else
+				{
+					newline(indent);
+					print(statement);
+				}
 			}
 
 			indent--;
 			newline(indent);
-			print("}");
-		}
-		else
-		{
-			print("}");
 		}
 
+		print("}");
 		return null;
 	}
 
@@ -164,7 +171,7 @@ public final class Generator implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.If ast)
 	{
-		print("if ", "(", ast.getCondition(), ") ", "{");
+		print("if (", ast.getCondition(), ") {");
 		indent++;
 
 		for (Ast.Stmt statement : ast.getThenStatements())
@@ -173,13 +180,12 @@ public final class Generator implements Ast.Visitor<Void>
 			print(statement);
 		}
 
-		indent--;
-		newline(indent);
-		print("}");
-
 		if (!ast.getElseStatements().isEmpty())
 		{
-			print(" else {");
+			--indent;
+			newline(indent);
+
+			print("} else {");
 			indent++;
 
 			for (Ast.Stmt statement : ast.getElseStatements())
@@ -187,11 +193,11 @@ public final class Generator implements Ast.Visitor<Void>
 				newline(indent);
 				print(statement);
 			}
-
-			indent--;
-			newline(indent);
-			print("}");
 		}
+
+		indent--;
+		newline(indent);
+		print("}");
 
 		return null;
 	}
@@ -199,17 +205,21 @@ public final class Generator implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.For ast)
 	{
-		print("for ", "(", "int ", ast.getName(), " : ", ast.getValue(), ") {");
+		print("for (", "int ", ast.getName(), " : ", ast.getValue(), ") {");
 		indent++;
 
-		for (Ast.Stmt statement : ast.getStatements())
+		if (!ast.getStatements().isEmpty())
 		{
+			for (Ast.Stmt statement : ast.getStatements())
+			{
+				newline(indent);
+				print(statement);
+			}
+
+			indent--;
 			newline(indent);
-			print(statement);
 		}
 
-		indent--;
-		newline(indent);
 		print("}");
 
 		return null;
