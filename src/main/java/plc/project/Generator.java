@@ -44,14 +44,13 @@ public final class Generator implements Ast.Visitor<Void>
 		print("public class Main {");
 		newline(0);
 		indent++;
+		newline(indent);
 
 		for (Ast.Field field : ast.getFields())
 		{
 			newline(indent);
 			print(field);
 		}
-
-		newline(indent);
 
 		print("public static void main(String[] args) {");
 		indent++;
@@ -60,11 +59,15 @@ public final class Generator implements Ast.Visitor<Void>
 		indent--;
 		newline(indent);
 		print("}");
-		newline(0);
 
 		for (Ast.Method method : ast.getMethods())
 		{
+			indent--;
 			newline(indent);
+
+			indent++;
+			newline(indent);
+
 			print(method);
 		}
 
@@ -215,12 +218,11 @@ public final class Generator implements Ast.Visitor<Void>
 	@Override
 	public Void visit(Ast.Stmt.While ast)
 	{
-		print("while ", "(", ast.getCondition(), ")", "{");
+		print("while (", ast.getCondition(), ") {");
+		indent++;
 
 		if (!ast.getStatements().isEmpty())
 		{
-			indent++;
-
 			for (Ast.Stmt statement : ast.getStatements())
 			{
 				newline(indent);

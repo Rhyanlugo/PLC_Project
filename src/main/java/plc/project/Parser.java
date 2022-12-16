@@ -74,13 +74,21 @@ public final class Parser
 		String identifier = tokens.get(-1).getLiteral();
 		String typeName;
 
-		if (match(":", Token.Type.IDENTIFIER))
+		if (match(":"))
 		{
-			typeName = tokens.get(-1).getLiteral();
+			if (match(Token.Type.IDENTIFIER))
+			{
+				typeName = tokens.get(-1).getLiteral();
+			}
+			else
+			{
+				throw generateParseException("'Identifier' expected'");
+			}
+
 		}
 		else
 		{
-			throw generateParseException("Incorrect type");
+			throw generateParseException("':' expected'");
 		}
 
 		if (match("="))
@@ -129,6 +137,7 @@ public final class Parser
 		{
 			throw generateParseException("'(' expected");
 		}
+
 		if (!peek(Token.Type.IDENTIFIER) && !peek(")"))
 		{
 			throw generateParseException("')' expected");
